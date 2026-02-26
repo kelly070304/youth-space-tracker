@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Youth Space Co-Creation Tracker</title>
+<style>
+  :root {
+    --purple-dark: #2D1B4E;
+    --purple-mid: #4A2D7A;
+    --purple-light: #C8B4E8;
+    --purple-pale: #EDE8F5;
+    --gold: #C9A84C;
+    --teal: #2A9D8F;
+    --red: #E8534A;
+    --white: #FFFFFF;
+    --grey-light: #F7F6FA;
+    --grey-mid: #DDD;
+    --text: #1a1228;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--grey-light); color: var(--text); min-height: 100vh; }
+
+  .top-bar { background: linear-gradient(135deg, var(--purple-dark) 0%, var(--purple-mid) 100%); color: white; padding: 1.2rem 2rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; box-shadow: 0 3px 12px rgba(45,27,78,0.3); }
+  .top-bar h1 { font-size: 1.25rem; font-weight: 700; }
+  .top-bar p { font-size: 0.8rem; opacity: 0.75; margin-top: 2px; }
+  .top-right { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
+  .badge { background: var(--gold); color: var(--purple-dark); font-size: 0.72rem; font-weight: 700; padding: 3px 10px; border-radius: 20px; white-space: nowrap; }
+  .sync-status { font-size: 0.72rem; opacity: 0.85; display: flex; align-items: center; gap: 5px; }
+  .sync-dot { width: 7px; height: 7px; border-radius: 50%; background: #aaa; flex-shrink: 0; transition: background 0.3s; }
+  .sync-dot.synced { background: #4caf50; }
+  .sync-dot.syncing { background: var(--gold); animation: pulse-dot 1s infinite; }
+  .sync-dot.error { background: var(--red); }
+  @keyframes pulse-dot { 0%,100%{opacity:1}50%{opacity:0.3} }
+
+  .tabs { background: var(--purple-dark); display: flex; padding: 0 2rem; overflow-x: auto; }
+  .tab-btn { background: none; border: none; color: rgba(255,255,255,0.55); font-size: 0.85rem; font-weight: 600; padding: 0.7rem 1.3rem; cursor: pointer; border-bottom: 3px solid transparent; transition: all 0.2s; white-space: nowrap; }
+  .tab-btn.active { color: var(--gold); border-bottom-color: var(--gold); }
+  .tab-btn:hover:not(.active) { color: rgba(255,255,255,0.85); }
+
+  .main { max-width: 1200px; margin: 0 auto; padding: 1.5rem; }
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  .card { background: white; border-radius: 10px; box-shadow: 0 2px 8px rgba(45,27,78,0.08); margin-bottom: 1.5rem; }
+  .card-header { background: var(--purple-pale); border-radius: 10px 10px 0 0; padding: 0.9rem 1.3rem; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--purple-light); }
+  .card-header h2 { font-size: 1rem; font-weight: 700; color: var(--purple-mid); }
+  .card-body { padding: 1.3rem; }
+
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .form-grid.full { grid-template-columns: 1fr; }
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field label { font-size: 0.78rem; font-weight: 600; color: var(--purple-mid); letter-spacing: 0.04em; text-transform: uppercase; }
+  .field input, .field select, .field textarea { border: 1.5px solid var(--grey-mid); border-radius: 6px; padding: 0.55rem 0.75rem; font-size: 0.9rem; font-family: inherit; color: var(--text); transition: border-color 0.2s; background: white; }
+  .field input:focus, .field select:focus, .field textarea:focus { outline: none; border-color: var(--purple-mid); box-shadow: 0 0 0 3px rgba(74,45,122,0.1); }
+  .field textarea { resize: vertical; min-height: 72px; }
+
+  .btn { padding: 0.6rem 1.4rem; border: none; border-radius: 6px; font-size: 0.88rem; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+  .btn-primary { background: var(--purple-mid); color: white; }
+  .btn-primary:hover { background: var(--purple-dark); transform: translateY(-1px); }
+  .btn-primary:disabled { background: #aaa; cursor: not-allowed; transform: none; }
+  .btn-danger { background: #fee; color: var(--red); font-size: 0.78rem; padding: 4px 10px; border: none; border-radius: 5px; cursor: pointer; transition: all 0.2s; }
+  .btn-danger:hover { background: var(--red); color: white; }
+  .btn-outline { background: none; border: 1.5px solid var(--purple-mid); color: var(--purple-mid); font-size: 0.82rem; padding: 5px 12px; border-radius: 6px; cursor: pointer; }
+  .btn-outline:hover { background: var(--purple-pale); }
+
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+  thead tr { background: var(--purple-dark); }
+  thead th { padding: 0.7rem 0.8rem; color: white; font-size: 0.75rem; font-weight: 600; text-align: left; letter-spacing: 0.04em; white-space: nowrap; }
+  tbody tr { border-bottom: 1px solid var(--grey-mid); }
+  tbody tr:nth-child(even) { background: var(--purple-pale); }
+  tbody tr:hover { background: #e8e0f5; }
+  td { padding: 0.55rem 0.8rem; vertical-align: top; }
+
+  .pill { display: inline-block; padding: 2px 9px; border-radius: 12px; font-size: 0.72rem; font-weight: 600; white-space: nowrap; }
+  .pill-want   { background:#d4edda;color:#1a6b2f; }
+  .pill-like   { background:#cce5ff;color:#004085; }
+  .pill-design { background:#e2d9f3;color:#4a2d7a; }
+  .pill-activ  { background:#fff3cd;color:#856404; }
+  .pill-feel   { background:#f8d7da;color:#721c24; }
+  .pill-pract  { background:#d1ecf1;color:#0c5460; }
+  .tag-artefact { background:#e8f4f8;color:#1a6b7f; }
+  .tag-form     { background:#fff8e1;color:#7a5f00; }
+  .tag-conv     { background:#fce4ec;color:#880e4f; }
+  .tag-obs      { background:#e8f5e9;color:#1b5e20; }
+
+  .summary-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(200px,1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+  .stat-card { background: white; border-radius: 10px; padding: 1rem 1.3rem; box-shadow: 0 2px 8px rgba(45,27,78,0.08); border-left: 4px solid var(--purple-mid); }
+  .stat-card .label { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; color: var(--purple-mid); letter-spacing: 0.05em; }
+  .stat-card .value { font-size: 2rem; font-weight: 800; color: var(--purple-dark); line-height: 1.1; margin: 4px 0; }
+  .stat-card .sub { font-size: 0.78rem; color: #888; }
+
+  .breakdown-table { width: 100%; border-collapse: collapse; }
+  .breakdown-table th, .breakdown-table td { padding: 0.5rem 0.8rem; text-align: left; }
+  .breakdown-table thead { background: var(--purple-pale); }
+  .breakdown-table thead th { font-size: 0.75rem; font-weight: 700; color: var(--purple-mid); text-transform: uppercase; }
+  .breakdown-table tbody tr { border-bottom: 1px solid var(--grey-mid); }
+  .bar-wrap { height: 10px; background: var(--purple-pale); border-radius: 5px; overflow: hidden; min-width: 80px; }
+  .bar-fill { height: 100%; background: linear-gradient(90deg, var(--purple-mid), var(--purple-light)); border-radius: 5px; transition: width 0.5s ease; }
+
+  .filters { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 1rem; align-items: flex-end; }
+  .filters .field { min-width: 160px; }
+
+  .loading-row td { text-align: center; padding: 2rem; color: #aaa; font-style: italic; }
+  .spinner { display: inline-block; width: 18px; height: 18px; border: 2px solid var(--purple-light); border-top-color: var(--purple-mid); border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 6px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .empty-state { text-align: center; padding: 3rem 1rem; color: #aaa; }
+  .empty-state .icon { font-size: 2.5rem; margin-bottom: 0.5rem; }
+
+  .settings-box { background: var(--purple-pale); border: 1.5px solid var(--purple-light); border-radius: 8px; padding: 1rem 1.2rem; margin-bottom: 1rem; }
+  .settings-box h3 { font-size: 0.9rem; font-weight: 700; color: var(--purple-mid); margin-bottom: 0.75rem; }
+  .event-tag { display: inline-flex; align-items: center; gap: 6px; background: white; border: 1.5px solid var(--purple-light); border-radius: 20px; padding: 4px 12px; font-size: 0.82rem; margin: 3px; }
+  .event-tag button { background: none; border: none; color: #aaa; cursor: pointer; font-size: 0.85rem; line-height: 1; padding: 0; }
+  .event-tag button:hover { color: var(--red); }
+  .add-event-row { display: flex; gap: 0.5rem; margin-top: 0.75rem; align-items: center; }
+  .add-event-row input { flex: 1; border: 1.5px solid var(--grey-mid); border-radius: 6px; padding: 0.45rem 0.75rem; font-size: 0.88rem; font-family: inherit; }
+  .add-event-row input:focus { outline: none; border-color: var(--purple-mid); }
+
+  .toast { position: fixed; bottom: 2rem; right: 2rem; background: var(--purple-dark); color: white; padding: 0.8rem 1.4rem; border-radius: 8px; font-size: 0.88rem; box-shadow: 0 4px 16px rgba(0,0,0,0.25); opacity: 0; transform: translateY(10px); transition: all 0.3s; z-index: 999; }
+  .toast.show { opacity: 1; transform: translateY(0); }
+  .toast.error { background: var(--red); }
+
+  @media (max-width: 640px) {
+    .form-grid { grid-template-columns: 1fr; }
+    .top-bar { flex-direction: column; align-items: flex-start; }
+    .main { padding: 1rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <div>
+    <h1>🏠 Youth Space Co-Creation</h1>
+    <p>Participant Input Tracker · Synced with Google Sheets</p>
+  </div>
+  <div class="top-right">
+    <div class="sync-status">
+      <div class="sync-dot" id="sync-dot"></div>
+      <span id="sync-label">Connecting…</span>
+    </div>
+    <span class="badge" id="totalBadge">— inputs</span>
+  </div>
+</div>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="showTab('log', this)">📋 Log Input</button>
+  <button class="tab-btn" onclick="showTab('view', this)">📄 View All</button>
+  <button class="tab-btn" onclick="showTab('summary', this)">📊 Summary</button>
+  <button class="tab-btn" onclick="showTab('settings', this)">⚙️ Events</button>
+</div>
+
+<div class="main">
+
+  <!-- LOG INPUT -->
+  <div class="panel active" id="tab-log">
+    <div class="card">
+      <div class="card-header">
+        <h2>Add New Input</h2>
+        <span style="font-size:0.78rem;color:#888;">Saves directly to your shared Google Sheet</span>
+      </div>
+      <div class="card-body">
+        <div class="form-grid" style="margin-bottom:1rem;">
+          <div class="field">
+            <label>Event *</label>
+            <select id="f-event"></select>
+          </div>
+          <div class="field">
+            <label>Date</label>
+            <input type="date" id="f-date">
+          </div>
+          <div class="field">
+            <label>Input Type *</label>
+            <select id="f-type">
+              <option value="">— Select type —</option>
+              <option>Artefact / Physical Creation</option>
+              <option>Form Response</option>
+              <option>Personal Conversation / Interview</option>
+              <option>Observation / Note</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Participant Description</label>
+            <input type="text" id="f-ref" placeholder="e.g. 16yo, regular attendee">
+          </div>
+          <div class="field">
+            <label>Category *</label>
+            <select id="f-cat">
+              <option value="">— Select category —</option>
+              <option>What They Want to See</option>
+              <option>What They Like About the Space</option>
+              <option>Space Design Ideas</option>
+              <option>Activities & Programming</option>
+              <option>Feelings & Emotions</option>
+              <option>Practical Needs</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-grid full" style="margin-bottom:1rem;">
+          <div class="field">
+            <label>Input / Quote *</label>
+            <textarea id="f-input" placeholder="e.g. I want to see more artwork on the walls…"></textarea>
+          </div>
+          <div class="field">
+            <label>Notes / Follow-up</label>
+            <textarea id="f-notes" placeholder="Any context, action items, or follow-up needed…"></textarea>
+          </div>
+        </div>
+        <button class="btn btn-primary" id="submit-btn" onclick="addEntry()">＋ Add Input</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- VIEW ALL -->
+  <div class="panel" id="tab-view">
+    <div class="card">
+      <div class="card-header">
+        <h2>All Inputs</h2>
+        <button class="btn-outline" onclick="loadEntries()">↻ Refresh</button>
+      </div>
+      <div class="card-body">
+        <div class="filters">
+          <div class="field">
+            <label>Filter by Event</label>
+            <select id="filt-event" onchange="renderTable()"><option value="">All Events</option></select>
+          </div>
+          <div class="field">
+            <label>Filter by Category</label>
+            <select id="filt-cat" onchange="renderTable()">
+              <option value="">All Categories</option>
+              <option>What They Want to See</option>
+              <option>What They Like About the Space</option>
+              <option>Space Design Ideas</option>
+              <option>Activities & Programming</option>
+              <option>Feelings & Emotions</option>
+              <option>Practical Needs</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Filter by Type</label>
+            <select id="filt-type" onchange="renderTable()">
+              <option value="">All Types</option>
+              <option>Artefact / Physical Creation</option>
+              <option>Form Response</option>
+              <option>Personal Conversation / Interview</option>
+              <option>Observation / Note</option>
+            </select>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>#</th><th>Event</th><th>Date</th><th>Type</th><th>Description</th><th>Category</th><th>Input</th><th>Notes</th><th></th></tr>
+            </thead>
+            <tbody id="input-table-body">
+              <tr class="loading-row"><td colspan="9"><span class="spinner"></span>Loading from Google Sheets…</td></tr>
+            </tbody>
+          </table>
+          <div id="empty-view" class="empty-state" style="display:none;">
+            <div class="icon">📭</div>
+            <p>No inputs yet — go to Log Input to add your first one!</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SUMMARY -->
+  <div class="panel" id="tab-summary">
+    <div class="summary-grid">
+      <div class="stat-card"><div class="label">Total Inputs</div><div class="value" id="s-total">—</div><div class="sub" id="s-total-sub">Loading…</div></div>
+      <div class="stat-card" style="border-color:var(--teal);"><div class="label">Events Covered</div><div class="value" id="s-events">—</div><div class="sub">Active events with inputs</div></div>
+      <div class="stat-card" style="border-color:var(--gold);"><div class="label">Categories Used</div><div class="value" id="s-cats">—</div><div class="sub">Of 6 total categories</div></div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <h2>Inputs by Category</h2>
+        <select id="sum-event-filter" onchange="renderSummary()" style="font-size:0.82rem;padding:4px 8px;border-radius:5px;border:1px solid var(--grey-mid);">
+          <option value="">All Events</option>
+        </select>
+      </div>
+      <div class="card-body">
+        <table class="breakdown-table">
+          <thead><tr><th>Category</th><th>Count</th><th style="min-width:120px;">Distribution</th></tr></thead>
+          <tbody id="summary-cat-body"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><h2>Inputs by Event</h2></div>
+      <div class="card-body">
+        <table class="breakdown-table">
+          <thead><tr><th>Event</th><th>Total Inputs</th><th>Top Category</th></tr></thead>
+          <tbody id="summary-event-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div class="panel" id="tab-settings">
+    <div class="card">
+      <div class="card-header"><h2>⚙️ Manage Events</h2></div>
+      <div class="card-body">
+        <div class="settings-box">
+          <h3>Current Events</h3>
+          <div id="event-tags"></div>
+          <div class="add-event-row">
+            <input type="text" id="new-event-input" placeholder="Type new event name…" onkeydown="if(event.key==='Enter') addEvent()">
+            <button class="btn btn-primary" onclick="addEvent()">＋ Add Event</button>
+          </div>
+        </div>
+        <p style="font-size:0.82rem;color:#888;margin-top:0.5rem;">
+          ℹ️ Events added here appear immediately in Log Input and all filters. Removing an event only removes it from the dropdowns — existing inputs in the sheet are kept.
+        </p>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SCRIPT_URL = "https://script.google.com/a/macros/withkita.sg/s/AKfycbyP2d37C5fuXoGmGQuDEw5h1z5d6iZHG3vXC7L0oNvSdRZxmr2MMF2YLTZ5SYW2PxNNiw/exec";
+
+let entries = [];
+let events = JSON.parse(localStorage.getItem('ysEvents') || '["Writing Jam","Movie Night","Space Tour + Makan Night"]');
+
+const CATS = ["What They Want to See","What They Like About the Space","Space Design Ideas","Activities & Programming","Feelings & Emotions","Practical Needs"];
+const catPills = {"What They Want to See":"pill-want","What They Like About the Space":"pill-like","Space Design Ideas":"pill-design","Activities & Programming":"pill-activ","Feelings & Emotions":"pill-feel","Practical Needs":"pill-pract"};
+const typePills = {"Artefact / Physical Creation":"tag-artefact","Form Response":"tag-form","Personal Conversation / Interview":"tag-conv","Observation / Note":"tag-obs"};
+const shortTypes = {"Artefact / Physical Creation":"Artefact","Form Response":"Form","Personal Conversation / Interview":"Conversation","Observation / Note":"Observation"};
+
+// ── Sync status ──────────────────────────────────────────────────────────
+function setSyncStatus(state, label) {
+  document.getElementById('sync-dot').className = 'sync-dot ' + state;
+  document.getElementById('sync-label').textContent = label;
+}
+
+// ── Load from Google Sheets ──────────────────────────────────────────────
+async function loadEntries() {
+  setSyncStatus('syncing', 'Loading…');
+  document.getElementById('input-table-body').innerHTML =
+    '<tr class="loading-row"><td colspan="9"><span class="spinner"></span>Loading from Google Sheets…</td></tr>';
+  try {
+    const res = await fetch(SCRIPT_URL);
+    const data = await res.json();
+    entries = Array.isArray(data) ? data.map(r => ({
+      id: String(r.id||''), event: r.event||'', date: r.date||'',
+      type: r.type||'', ref: r.ref||'', category: r.category||'',
+      input: r.input||'', notes: r.notes||''
+    })) : [];
+    setSyncStatus('synced', 'Synced ✓');
+    updateBadge();
+    renderTable();
+    renderSummary();
+    renderEventDropdowns();
+  } catch(e) {
+    setSyncStatus('error', 'Connection error');
+    showToast('⚠️ Could not reach Google Sheets. Check your Apps Script is deployed correctly.', true);
+    document.getElementById('input-table-body').innerHTML =
+      '<tr class="loading-row"><td colspan="9">⚠️ Could not connect. Check the Apps Script deployment and try refreshing.</td></tr>';
+  }
+}
+
+// ── Add entry ────────────────────────────────────────────────────────────
+async function addEntry() {
+  const ev   = document.getElementById('f-event').value;
+  const type = document.getElementById('f-type').value;
+  const cat  = document.getElementById('f-cat').value;
+  const inp  = document.getElementById('f-input').value.trim();
+  if (!ev || !type || !cat || !inp) { showToast('⚠️ Please fill in Event, Type, Category and Input.', true); return; }
+
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true; btn.textContent = 'Saving…';
+  setSyncStatus('syncing', 'Saving…');
+
+  const entry = {
+    id: String(Date.now()), event: ev,
+    date: document.getElementById('f-date').value,
+    type, ref: document.getElementById('f-ref').value.trim(),
+    category: cat, input: inp,
+    notes: document.getElementById('f-notes').value.trim()
+  };
+
+  try {
+    await fetch(SCRIPT_URL, {
+      method: 'POST', mode: 'no-cors',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({action:'add', ...entry})
+    });
+    entries.push(entry);
+    updateBadge(); renderTable(); renderSummary();
+    ['f-event','f-type','f-cat'].forEach(id => document.getElementById(id).value = '');
+    ['f-date','f-ref','f-input','f-notes'].forEach(id => document.getElementById(id).value = '');
+    setSyncStatus('synced', 'Saved ✓');
+    showToast('✅ Input saved to Google Sheets!');
+  } catch(e) {
+    setSyncStatus('error', 'Save failed');
+    showToast('⚠️ Could not save. Please try again.', true);
+  }
+  btn.disabled = false; btn.textContent = '＋ Add Input';
+}
+
+// ── Delete entry ─────────────────────────────────────────────────────────
+async function deleteEntry(id) {
+  if (!confirm('Remove this input from the Google Sheet?')) return;
+  setSyncStatus('syncing', 'Deleting…');
+  try {
+    await fetch(SCRIPT_URL, {
+      method: 'POST', mode: 'no-cors',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({action:'delete', id})
+    });
+    entries = entries.filter(e => e.id !== id);
+    updateBadge(); renderTable(); renderSummary();
+    setSyncStatus('synced', 'Synced ✓');
+    showToast('🗑 Input removed from sheet.');
+  } catch(e) {
+    setSyncStatus('error', 'Delete failed');
+    showToast('⚠️ Could not delete. Please try again.', true);
+  }
+}
+
+// ── Render table ─────────────────────────────────────────────────────────
+function renderTable() {
+  const fEvent = document.getElementById('filt-event').value;
+  const fCat   = document.getElementById('filt-cat').value;
+  const fType  = document.getElementById('filt-type').value;
+  const filtered = entries.filter(e =>
+    (!fEvent || e.event === fEvent) &&
+    (!fCat   || e.category === fCat) &&
+    (!fType  || e.type === fType)
+  );
+  const tbody = document.getElementById('input-table-body');
+  const empty = document.getElementById('empty-view');
+  if (entries.length === 0) { tbody.innerHTML=''; empty.style.display=''; return; }
+  empty.style.display = 'none';
+  if (filtered.length === 0) {
+    tbody.innerHTML = '<tr class="loading-row"><td colspan="9">No inputs match your filters.</td></tr>'; return;
+  }
+  tbody.innerHTML = filtered.map((e, i) => `
+    <tr>
+      <td style="color:#aaa;font-size:0.75rem;">${i+1}</td>
+      <td><strong style="color:var(--purple-mid);font-size:0.82rem;">${e.event}</strong></td>
+      <td style="color:#888;font-size:0.78rem;white-space:nowrap;">${e.date||'—'}</td>
+      <td><span class="pill ${typePills[e.type]||''}">${shortTypes[e.type]||e.type}</span></td>
+      <td style="color:#555;font-size:0.82rem;">${e.ref||'—'}</td>
+      <td><span class="pill ${catPills[e.category]||''}">${e.category}</span></td>
+      <td style="max-width:220px;">${e.input}</td>
+      <td style="color:#888;font-size:0.82rem;max-width:150px;">${e.notes||'—'}</td>
+      <td><button class="btn-danger" onclick="deleteEntry('${e.id}')">✕</button></td>
+    </tr>`).join('');
+}
+
+// ── Render summary ────────────────────────────────────────────────────────
+function renderSummary() {
+  const filterEvent = document.getElementById('sum-event-filter').value;
+  const filtered = filterEvent ? entries.filter(e => e.event === filterEvent) : entries;
+  document.getElementById('s-total').textContent  = filtered.length;
+  document.getElementById('s-total-sub').textContent = filterEvent || 'Across all events';
+  document.getElementById('s-events').textContent = [...new Set(entries.map(e => e.event))].length;
+  document.getElementById('s-cats').textContent   = [...new Set(filtered.map(e => e.category))].length;
+
+  const catCounts = CATS.map(c => ({ cat: c, count: filtered.filter(e => e.category === c).length }));
+  const maxCat = Math.max(...catCounts.map(c => c.count), 1);
+  document.getElementById('summary-cat-body').innerHTML = catCounts.map(({cat, count}) => `
+    <tr>
+      <td><span class="pill ${catPills[cat]}">${cat}</span></td>
+      <td><strong>${count}</strong></td>
+      <td><div class="bar-wrap"><div class="bar-fill" style="width:${Math.round(count/maxCat*100)}%"></div></div></td>
+    </tr>`).join('');
+
+  document.getElementById('summary-event-body').innerHTML = events.map(ev => {
+    const evE = entries.filter(e => e.event === ev);
+    const topCat = CATS.reduce((a,c) => { const n=evE.filter(e=>e.category===c).length; return n>a.count?{cat:c,count:n}:a; }, {cat:'—',count:0});
+    return `<tr>
+      <td><strong style="color:var(--purple-mid);">${ev}</strong></td>
+      <td>${evE.length}</td>
+      <td>${topCat.count>0?`<span class="pill ${catPills[topCat.cat]}">${topCat.cat}</span>`:'—'}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── Event management ──────────────────────────────────────────────────────
+function saveEvents() { localStorage.setItem('ysEvents', JSON.stringify(events)); }
+
+function renderEventDropdowns() {
+  ['f-event','filt-event','sum-event-filter'].forEach(id => {
+    const sel = document.getElementById(id);
+    const cur = sel.value;
+    const isFilter = id !== 'f-event';
+    sel.innerHTML = (isFilter ? '<option value="">All Events</option>' : '<option value="">— Select event —</option>')
+      + events.map(ev => `<option${ev===cur?' selected':''}>${ev}</option>`).join('');
+  });
+}
+
+function renderEventTags() {
+  document.getElementById('event-tags').innerHTML = events.map(ev => `
+    <span class="event-tag">${ev}
+      <button onclick="removeEvent(${JSON.stringify(ev)})" title="Remove">✕</button>
+    </span>`).join('');
+}
+
+function addEvent() {
+  const input = document.getElementById('new-event-input');
+  const name = input.value.trim();
+  if (!name) { showToast('⚠️ Please type an event name.', true); return; }
+  if (events.includes(name)) { showToast('⚠️ That event already exists.', true); return; }
+  events.push(name);
+  saveEvents(); renderEventDropdowns(); renderEventTags();
+  input.value = '';
+  showToast(`✅ "${name}" added to events!`);
+}
+
+function removeEvent(name) {
+  if (!confirm(`Remove "${name}" from the dropdown? Existing inputs in the sheet are kept.`)) return;
+  events = events.filter(e => e !== name);
+  saveEvents(); renderEventDropdowns(); renderEventTags();
+  showToast(`"${name}" removed from dropdowns.`);
+}
+
+// ── Tabs ──────────────────────────────────────────────────────────────────
+function showTab(name, btn) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  btn.classList.add('active');
+  if (name === 'view') renderTable();
+  if (name === 'summary') renderSummary();
+  if (name === 'settings') renderEventTags();
+}
+
+function updateBadge() {
+  document.getElementById('totalBadge').textContent = `${entries.length} input${entries.length!==1?'s':''}`;
+}
+
+function showToast(msg, isError=false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast' + (isError?' error':'');
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────
+renderEventDropdowns();
+renderEventTags();
+loadEntries();
+</script>
+</body>
+</html>
